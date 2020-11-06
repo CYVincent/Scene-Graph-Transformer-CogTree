@@ -100,7 +100,6 @@ class TreeSupLoss(nn.Module):
         self.sample_nums = np.array(sample_nums)
         self.node_depths = defaultdict(lambda: [])
         self.node_weights = defaultdict(lambda: [])
-        # self.node_samples = defaultdict(lambda: [])
         effective_num = 1.0 - np.power(0.999, self.sample_nums)
         weights = (1.0 - 0.999) / np.array(effective_num)
         self.weights = weights
@@ -109,12 +108,8 @@ class TreeSupLoss(nn.Module):
             depth = node.get_depth()
             self.node_depths[key].append(depth)
             node_weight = []
-            # node_sample = []
             for new_label in range(node.num_classes):
                 node_weight.append(weights[node.new_to_old_classes[new_label]])
-            #     node_sample.append(sum(self.sample_nums[node.new_to_old_classes[new_label]]))
-            # self.node_samples[key].append(node_sample)
-            # node_weight = node_weight / np.sum(node_weight) * node.num_classes
             self.node_weights[key].append(node_weight)
 
     @staticmethod
@@ -190,7 +185,7 @@ class HardTreeSupLoss(TreeSupLoss):
         fg_idx = (targets!=0)
         outputs_ = outputs[fg_idx, 1:]
         targets_ = (targets[fg_idx] - 1)
-        # loss = self.criterion(outputs, targets)
+
         losses = []
         num_losses = outputs_.size(0) * len(self.nodes) / 2.
 
@@ -209,7 +204,6 @@ class HardTreeSupLoss(TreeSupLoss):
             inds_subs[key].append(inds)
         for key in outputs_subs:
             outputs_sub_ = torch.cat(outputs_subs[key], dim=0)
-            # targets_sub = torch.Tensor(targets_subs[key]).long().to(outputs_sub.device)
 
             assert len(outputs_subs[key]) == len(targets_subs[key])
             assert len(self.node_depths[key]) == len(outputs_subs[key])
@@ -230,11 +224,8 @@ class HardTreeSupLoss(TreeSupLoss):
                         temp = F.cross_entropy(input=outputs_sub, target=targets_sub, weight=weight_)
                     else:
                         targets_sub = F.one_hot(targets_sub, key).float()
-                        # temp = F.binary_cross_entropy(input=outputs_sub.softmax(dim=1), target=targets_sub,
-                        #                               weight=weight_)
                         temp = F.binary_cross_entropy_with_logits(input=outputs_sub, target=targets_sub,
                                                       weight=weight_)
-                    # temp = F.cross_entropy(outputs_sub, targets_sub)
                     losses_sub.append(temp * (depth / 10.0 + 1))
             losses_sub = sum(losses_sub) / len(losses_sub)
             losses.append(losses_sub * fraction)
@@ -253,7 +244,6 @@ class SoftTreeSupLoss(TreeSupLoss):
         fg_idx = (targets != 0)
         outputs_ = outputs[fg_idx, 1:]
         targets_ = (targets[fg_idx] - 1)
-        # loss = self.criterion(outputs, targets)
         bayesian_outputs = self.rules(outputs_)
         loss = self.criterion(bayesian_outputs, targets_) * self.tree_supervision_weight
         return loss
