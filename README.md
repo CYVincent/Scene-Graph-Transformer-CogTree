@@ -12,7 +12,7 @@
 
 ## Overview
 
-This code is based on [Scene Graph Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch) and [Neural-Backed Decision Trees](Neural-Backed Decision Trees). We propose a new SG-Transformer model and a novel CogTree loss in SGG task. We merge the Pytorch implementation into Scene Graph Benchmark. Please see more details in our paper [CogTree: Cognition Tree Loss for Unbiased Scene Graph Generation](https://arxiv.org/abs/2009.07526).
+This code is based on [Scene Graph Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch) and [Neural-Backed Decision Trees](https://github.com/alvinwan/neural-backed-decision-trees). We propose a new SG-Transformer model and a novel CogTree loss in SGG task. We merge the Pytorch implementation into Scene Graph Benchmark. Please see more details in our paper [CogTree: Cognition Tree Loss for Unbiased Scene Graph Generation](https://arxiv.org/abs/2009.07526).
 
 ## Installation
 

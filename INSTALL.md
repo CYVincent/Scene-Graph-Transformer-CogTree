@@ -1,6 +1,6 @@
 ## Installation
 
-Most of the requirements of this projects are exactly the same as [Scene Graph Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch) and [Neural-Backed Decision Trees](Neural-Backed Decision Trees). If you have any problem of your environment, you should check the [issues page of SG Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch/issues) and [issues page of NBDT](https://github.com/alvinwan/neural-backed-decision-trees/issues) first.
+Most of the requirements of this projects are exactly the same as [Scene Graph Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch) and [Neural-Backed Decision Trees](https://github.com/alvinwan/neural-backed-decision-trees). If you have any problem of your environment, you should check the [issues page of SG Benchmark](https://github.com/KaihuaTang/Scene-Graph-Benchmark.pytorch/issues) and [issues page of NBDT](https://github.com/alvinwan/neural-backed-decision-trees/issues) first.
 
 ### Requirements:
 - PyTorch >= 1.2
