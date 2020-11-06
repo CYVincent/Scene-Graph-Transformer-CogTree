@@ -1,0 +1,7 @@
+pytorchcv
+torch
+torchvision
+nltk
+scikit-learn
+networkx
+pytest

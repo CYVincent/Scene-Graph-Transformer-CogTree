@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>CONFIG_TITLE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond&display=swap" rel="stylesheet">
+    <style>
+html {
+  font-size: calc(16px * CONFIG_ZOOM);
+  background-color: CONFIG_BG_COLOR;
+}
+
+.node {
+	cursor: pointer;
+}
+
+.node circle {
+  fill: rgb(102,102,102);
+  stroke: #666666;
+  stroke-width: 0.12em;
+  r: 0.6em;
+}
+
+.node text {
+  font-size:0.9em;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight:bold;
+}
+
+.node text.small {
+  font-size:0.7em;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 0.07em;
+}
+    </style>
+  </head>
+  <body>
+
+<!-- load the d3.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+
+<script>
+
+// CONSTANTS that python will impute
+var zoom_factor = CONFIG_ZOOM;
+var show_sublabels = CONFIG_SHOW_SUBLABELS;
+var straight_lines = CONFIG_STRAIGHT_LINES;
+var treeData = CONFIG_TREE_DATA;
+
+// copy-pasta'ed the code in this file from https://bl.ocks.org/d3noob/8375092
+
+// ************** Generate the tree diagram	 *****************
+var margin = {top: 20, right: 120, bottom: 20, left: 140},
+	  width = 3000 - margin.right - margin.left,
+	  height = CONFIG_VIS_HEIGHT - margin.top - margin.bottom;
+
+var i = 0,
+	duration = 750,
+	root;
+
+var tree = d3.layout.tree()
+	.size([height, width]);
+
+var diagonal = d3.svg.diagonal()
+	.projection(function(d) { return [d.y, d.x]; });
+
+var svg = d3.select("body").append("svg")
+	.attr("width", width + margin.right + margin.left)
+	.attr("height", height + margin.top + margin.bottom)
+  .append("g")
+	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// define custom reusable elements
+
+// gradient
+var gradient = svg.append("svg:defs")
+    .append("svg:linearGradient")
+    .attr("id", "gradientGray")
+    .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "100%")
+    .attr("y2", "100%")
+    .attr("spreadMethod", "pad");
+
+// Define the gradient colors
+gradient.append("svg:stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#bfbfbfff")
+    .attr("stop-opacity", 1);
+
+gradient.append("svg:stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#737373ff")
+    .attr("stop-opacity", 1);
+
+// gradient
+var gradientBlue = svg.append("svg:defs")
+    .append("svg:linearGradient")
+    .attr("id", "gradientBlue")
+    .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "100%")
+    .attr("y2", "100%")
+    .attr("spreadMethod", "pad");
+
+// Define the gradient colors
+gradientBlue.append("svg:stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#dfe9fbff")
+    .attr("stop-opacity", 1);
+
+gradientBlue.append("svg:stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#6e9be7ff")
+    .attr("stop-opacity", 1);
+
+// gradient
+var gradientBlueGreen = svg.append("svg:defs")
+    .append("svg:linearGradient")
+    .attr("id", "gradientBlueGreen")
+    .attr("x1", "0%")
+    .attr("y1", "0%")
+    .attr("x2", "100%")
+    .attr("y2", "100%")
+    .attr("spreadMethod", "pad");
+
+// Define the gradient colors
+gradientBlueGreen.append("svg:stop")
+    .attr("offset", "0%")
+    .attr("stop-color", "#00c760")
+    .attr("stop-opacity", 1);
+
+gradientBlueGreen.append("svg:stop")
+    .attr("offset", "100%")
+    .attr("stop-color", "#0460b4")
+    .attr("stop-opacity", 1);
+
+
+function gradientFill(d) {
+  if (d.color == "blue") return "url(#gradientBlue)";
+  if (d.color == "blue-green") return "url(#gradientBlueGreen)";
+  return "url(#gradientGray)";
+}
+
+function gradientStroke(d) {
+  if (d.target && d.target.color_incident_edge) d = d.target;
+  if (d.color == "blue-green") return "#0460b4";
+  if (d.color == "blue") return "#1155cc";
+  return "#666666"
+}
+
+function gradientFontColor(d) {
+  if (d.target && d.target.color_incident_edge) d = d.target;
+  if (d.color == "blue-green") return "#0460b4";
+  if (d.color == "blue") return "#1155cc";
+  return "CONFIG_TEXT_COLOR"
+}
+
+
+// arrow
+function makeArrow(d) {
+  var fill = gradientStroke(d);
+  var id = "arrow" + fill.replace("#", "");
+
+  var arrow = svg.append("svg:defs").append("svg:marker")
+      .attr("id", id)
+      .attr("viewBox", "0 -5 10 10")
+      .attr("markerWidth", 5)
+      .attr("markerHeight", 5)
+      .attr("orient", "auto")
+      .style("fill", fill);
+
+  arrow.append("svg:path")
+      .attr("d", "M0,-5L10,0L0,5");
+
+  return "url(#" +  id +  ")";
+}
+
+// end custom elements
+
+root = treeData[0];
+root['force_text_on_left'] = true;
+root.x0 = height / 2;
+root.y0 = 0;
+
+update(root);
+
+d3.select(self.frameElement).style("height", height + "px");
+
+function update(source) {
+
+  // Compute the new tree layout.
+  var nodes = tree.nodes(root).reverse(),
+	  links = tree.links(nodes);
+
+  // Normalize for fixed-depth.
+  nodes.forEach(function(d) { d.y = d.depth * 180; });
+
+  // Update the nodes…
+  var node = svg.selectAll("g.node")
+	  .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+  // Enter any new nodes at the parent's previous position.
+  var nodeEnter = node.enter().append("g")
+	  .attr("class", "node")
+	  .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+	  .on("click", click)
+    .attr("d", function(d) {
+          d.radius = 21 * CONFIG_ZOOM;
+          d.marker_end = 7 * CONFIG_ZOOM;
+          d.marker_start = 0 * CONFIG_ZOOM;
+          d.padding = 20 * CONFIG_ZOOM;  // enabled by getTargetNodeCircumferencePoint
+    })
+
+  nodeEnter.append("text")
+    .text(function(d) { return d.label; })
+    .attr("dy", function(d) { return show_sublabels ? "-0.2em" : "0.3em"});
+
+  nodeEnter.append("text")
+    .attr("class", "small")
+    .attr("dy", "1.2em")
+    .text(function(d) { return show_sublabels ? d.sublabel : ""; })
+
+  function textOnLeft(d) {
+    if (d.force_text_on_left) return true;
+    children = d.children || d._children;
+    if (!children) return false;
+    return children.length % 2 != 0;
+  }
+
+  nodeEnter.insert("rect", "text")
+    .attr("x", function(d, i){ return textOnLeft(d) ? this.parentNode.getBBox().x - this.parentNode.getBBox().width + 2 : this.parentNode.getBBox().x + 32 })
+    .attr("y", function(d){ return this.parentNode.getBBox().y; })
+    .attr("width", function(d){ return Math.max(this.parentNode.getBBox().width - 5, 0); })
+    .attr("height", function(d) {return this.parentNode.getBBox().height; })
+    .style("fill", "CONFIG_TEXT_RECT_COLOR");
+
+  nodeEnter.append("svg:image")
+    .attr("xlink:href", function(d) { return d.image ? d.image.href : '' })
+    .attr("x", function(d) { return this.parentNode.getBBox().width + 40; })
+    .attr("y", function(d) { return d.image ? -d.image.height / 2 : 0; })
+    .attr("height", function(d) { return d.image ? d.image.height : 0 })
+    .attr("width", function(d) { return d.image ? d.image.width : 0 });
+
+  dx = 5 * Math.pow(2.5, 2);
+  nodeEnter.selectAll("text")
+	  .attr("x", function(d) { return textOnLeft(d) ? -13 : 13; })
+    .attr("dx", function(d) { return textOnLeft(d) ? -dx + "px" : dx + "px"; })
+	  .attr("text-anchor", function(d) { return textOnLeft(d) ? "end" : "start"; })
+    .attr("fill", gradientFontColor);
+
+  nodeEnter.append("circle")
+	  .attr("r", 1e-6)
+	  .style("fill", function(d) {
+      if (d._children) return "#fff";
+      return gradientFill(d);
+    })
+    .style("stroke", gradientStroke);
+
+  // Transition nodes to their new position.
+  var nodeUpdate = node.transition()
+	  .duration(duration)
+	  .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+  nodeUpdate.select("circle")
+	  .attr("r", 10)
+	  .style("fill", function(d) {
+      if (d._children) return "#fff";
+      return gradientFill(d);
+    });
+
+  nodeUpdate.select("text")
+	  .style("fill-opacity", 1);
+
+  nodeUpdate.select("text.small")
+	  .style("fill-opacity", 1);
+
+  // Transition exiting nodes to the parent's new position.
+  var nodeExit = node.exit().transition()
+	  .duration(duration)
+	  .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+	  .remove();
+
+  nodeExit.select("circle")
+	  .attr("r", 1e-6);
+
+  nodeExit.select("text")
+	  .style("fill-opacity", 1e-6);
+
+  nodeExit.select("text.small")
+	  .style("fill-opacity", 1e-6);
+
+  if (straight_lines) {
+
+    // Update the links…
+    var link = svg.selectAll("line")
+  	  .data(links, function(d) { return d.target.id; });
+
+    link.enter().insert("line", "g")
+          .attr("class", "link")
+          .style("stroke", gradientStroke);
+
+    link.attr('x1', function(d) {
+             return getTargetNodeCircumferencePoint(d.target, d.source, d.target.marker_start)[1];
+        })
+        .attr('y1', function(d) {
+             return getTargetNodeCircumferencePoint(d.target, d.source, d.target.marker_start)[0];
+        })
+        .attr("x2", function(d) {
+             return getTargetNodeCircumferencePoint(d.source, d.target, d.target.marker_end)[1];
+        })
+        .attr("y2", function(d) {
+             return getTargetNodeCircumferencePoint(d.source, d.target, d.target.marker_end)[0];
+        })
+        .attr('marker-end', makeArrow)
+
+
+
+    function getTargetNodeCircumferencePoint(source, target, end) {
+
+        var t_radius = (target.radius + target.padding) / 2.0 + end;
+        var dx = target.x - source.x;
+        var dy = target.y - source.y;
+        var gamma = Math.atan2(dy, dx); // Math.atan2 returns the angle in the correct quadrant as opposed to Math.atan
+        var tx = target.x - (Math.cos(gamma) * t_radius);
+        var ty = target.y - (Math.sin(gamma) * t_radius);
+
+        return [tx, ty];
+    }
+  } else {
+
+    // Update the links…
+    var link = svg.selectAll("path.link")
+  	  .data(links, function(d) { return d.target.id; });
+
+    // Enter any new links at the parent's previous position.
+    link.enter().insert("path", "g")
+  	  .attr("class", "link")
+  	  .attr("d", function(d) {
+    		var o = {x: source.x0, y: source.y0};
+    		return diagonal({source: o, target: o});
+  	  });
+  }
+
+  // Transition links to their new position.
+  link.transition()
+    .duration(duration)
+    .attr("d", diagonal);
+
+  // Transition exiting nodes to the parent's new position.
+  link.exit().transition()
+    .duration(duration)
+    .attr("d", function(d) {
+      var o = {x: source.x, y: source.y};
+      return diagonal({source: o, target: o});
+    })
+    .remove();
+
+  // Stash the old positions for transition.
+  nodes.forEach(function(d) {
+  	d.x0 = d.x;
+  	d.y0 = d.y;
+  });
+}
+
+// Toggle children on click.
+function click(d) {
+  if (d.children) {
+	d._children = d.children;
+	d.children = null;
+  } else {
+	d.children = d._children;
+	d._children = null;
+  }
+  update(d);
+}
+
+</script>
+
+  </body>
+</html>
